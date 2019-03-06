@@ -1,0 +1,125 @@
+---
+title: "Exploratory Factory Analysis"
+output:
+  html_document:
+    df_print: paged
+---
+
+`r (knitr::opts_chunk$set(collapse=T))`
+
+# Introduction
+
+Exploratory factor analysis (EFA), is a technique that used to discover the latent variables being measured by a survey. EFA is typically used a first or possibly second step, in a complete analysis regarding the validity of a survey, where EFA leads into confirmatiory factor analysis (CFA).
+
+## Lesson Plan
+
+Several resources were used in creating this lesson. The first resource a [video](https://www.youtube.com/watch?v=C5RJvMaHJNo&t=3096s) by a professor at Missouri State University. The second is reasearch gate [article](https://www.researchgate.net/publication/283172637_A_Review_of_Exploratory_Factor_Analysis_EFA_Decisions_and_Overview_of_Current_Practices_What_We_Are_Doing_and_How_Can_We_Improve) by Matt Howard. The third is another research gate [article](https://www.researchgate.net/profile/Witold_Orlik/post/What_is_Exploratory_Factor_Analysis_EFA_or_Confirmatory_Factor_analysis_CFA/attachment/59d620b179197b807797f2a9/AS%3A292028102529025%401446636333397/download/Exploratory+factor+analysis-+A+five-step+guide+for+novices.pdf), this time from Bret Williams. The primary resource is the video, and the articles are used to supplement the material. I took liberty to make some small chaanges in methodology follwoing the suggestions laid out by the article. This will introduce some inconsistencies from my code, to the code that is presented in the video lecture.
+
+## Setup
+
+```{r}
+library(dplyr)
+```
+
+## Data
+
+```{r}
+# Questions Key
+q <- list(
+  E1	="I am the life of the party.",
+  E2	="I don't talk a lot.",
+  E3	="I feel comfortable around people.",
+  E4	="I keep in the background.",
+  E5	="I start conversations.",
+  E6	="I have little to say.",
+  E7	="I talk to a lot of different people at parties.",
+  E8	="I don't like to draw attention to myself.",
+  E9	="I don't mind being the center of attention.",
+  E10	="I am quiet around strangers.",
+  N1	="I get stressed out easily.",
+  N2	="I am relaxed most of the time.",
+  N3	="I worry about things.",
+  N4	="I seldom feel blue.",
+  N5	="I am easily disturbed.",
+  N6	="I get upset easily.",
+  N7	="I change my mood a lot.",
+  N8	="I have frequent mood swings.",
+  N9	="I get irritated easily.",
+  N10	="I often feel blue.",
+  A1	="I feel little concern for others.",
+  A2	="I am interested in people.",
+  A3	="I insult people.",
+  A4	="I sympathize with others' feelings.",
+  A5	="I am not interested in other people's problems.",
+  A6	="I have a soft heart.",
+  A7	="I am not really interested in others.",
+  A8	="I take time out for others.",
+  A9	="I feel others' emotions.",
+  A10	="I make people feel at ease.",
+  C1	="I am always prepared.",
+  C2	="I leave my belongings around.",
+  C3	="I pay attention to details.",
+  C4	="I make a mess of things.",
+  C5	="I get chores done right away.",
+  C6	="I often forget to put things back in their proper place.",
+  C7	="I like order.",
+  C8	="I shirk my duties.",
+  C9	="I follow a schedule.",
+  C10	="I am exacting in my work.",
+  O1	="I have a rich vocabulary.",
+  O2	="I have difficulty understanding abstract ideas.",
+  O3	="I have a vivid imagination.",
+  O4	="I am not interested in abstract ideas.",
+  O5	="I have excellent ideas.",
+  O6	="I do not have a good imagination.",
+  O7	="I am quick to understand things.",
+  O8	="I use difficult words.",
+  O9	="I spend time reflecting on things.",
+  O10	="I am full of ideas."
+)
+
+#' Gets a dataset containting answers to a personality test meant to measure Big 5
+#' personality traits.
+big5 <- function(){
+  id <- round(runif(1, 100000, 999999), 0)
+  path = paste0('./temp_', id)
+  dir.create(path)
+  setwd(path)
+  download.file("http://openpsychometrics.org/_rawdata/BIG5.zip", destfile="BIG5.zip")
+  unzip("BIG5.zip")
+  big5 <- read.csv('./BIG5/data.csv', sep='\t')
+  setwd('..')
+  unlink(path, recursive = T)
+  big5
+}
+
+raw_data <- big5()
+data <- raw_data %>%
+  filter(engnat == 1) %>% # english is natural language=
+  select(-race, -age, -engnat, -gender, -hand, -source, -country)
+```
+
+## EFA
+
+```{r}
+# Check for missing values
+summary(data)  # no NAS
+
+# impute or handle missing values if any
+# in this case, we do not have any to deal with
+
+# Recode variables
+# our dataset does not need to be recoded, but
+# we would recode if the scale was flipped on any of
+# our scores
+
+# Check for outliars
+cutoff <- qchisq(1 - 0.001, ncol(data))
+mahal <- mahalanobis(data,
+                     colMeans(data),
+                     cov(data))
+summary(mahal < cutoff)
+outliar_mask <- mahal < cutoff
+data.noout <- data[outliar_mask,]
+
+```

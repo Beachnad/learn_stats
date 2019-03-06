@@ -1,0 +1,48 @@
+---
+title: "Mahalanobis Distance"
+output: html_notebook
+---
+
+# Introduction
+
+This notebook is a snippet about Mahalanobis Distance to be used to supplement the material in other notebooks in this directory.
+
+I populated this notebook by following the material [here](https://www.analyticsindiamag.com/understanding-mahalanobis-distance-and-its-use-cases/). In an effort to better understand the material, I will be implementing a formula which can make this calculation from scratch. In reality, there are built-in functions which achieves this effect, which would be used in production code.
+
+# What is it?
+
+Mahalanobis distance (MD) measures the relative distance between two variables with respect to the centroid.
+
+# Equation
+
+Observataions:
+$$x = (x_1,x_2,x_3,...x_N)^T$$
+
+Means:
+$$\mu=(\mu_1,\mu_2,\mu_3,...\mu_N)^T$$
+
+Covariance Matrix $$S$$
+
+Mahalanobis Distance Formula
+$$MD(x)=\sqrt{(x-\mu)^TS^{-1}(x-\mu)}$$
+
+# As an R Function
+
+```{r}
+m1 <- matrix(sample(0:9, 12, replace = T), ncol=4)
+m2 <- matrix(sample(0:9, 12, replace = T), ncol=3)
+
+cov(m1)
+cor(m1)
+
+mahalanobis_distance <- function(x, means, covariance){
+  
+}
+
+det(m1)
+
+library(matlib)
+
+mahalanobis_distance(c(2, 4, 3), c())
+
+```

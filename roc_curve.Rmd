@@ -1,0 +1,123 @@
+---
+title: "ROC Curves"
+output: html_document
+---
+
+# Introduction
+
+This notebook was created while following the lesson in this video: [StatQuest ROC](https://www.youtube.com/watch?v=qcvAqAH60Yw). 
+
+# Lesson
+
+## Required Libraries
+
+```{r echo=T, message=FALSE, warning=F}
+library(pROC)
+
+# other libraries not directly needed for understaing the main subject
+library(dplyr)
+library(randomForest)
+```
+
+## Setup / Initial Paramaters
+
+we set the random seed so that we can reproduce the results. In addition, we set the number of samples we are trying to simulate.
+
+```{r}
+set.seed(420)
+n_samples <- 100
+```
+
+## Doing the Work
+
+Now, we simulate some data. Here we use the known U.S. mean and sd for weight to simulate given weights. In addition, we assign whether or not the individual is obese or not obese.
+
+```{r}
+weight <- sort(rnorm(n=n_samples, mean=172, sd=29))
+obese <- ifelse((runif(n=n_samples)) < rank(weight)/100, 1, 0)
+```
+
+Now we plot what that looks like
+
+```{r echo=T}
+plot(x=weight, y=obese)
+glm.fit = glm(obese ~ weight, family = binomial)
+lines(weight, glm.fit$fitted.values)
+```
+
+Using the pROC library, we can plot what the ROC graph looks like.
+
+```{r}
+par(pty = "s")  # removes thee padding on left and right drawing a nicer plot
+roc(obese, glm.fit$fitted.values, plot=T, legacy.axes = T, percent = T,
+    xlab = "False Positive Percentage", ylab = "True Positive Percentage",
+    col = '#377EB8', lwd=4)
+```
+
+The first chcunk of output, is just an echo of the function call - not very interesting.
+
+The second component is a bit more interesting. It describes how many samples were not obese (obese = 0) and obese (obese = 1).
+
+The final part, the AUC, is the most important and interessting of all. This number tell us the area under the curve, which should be a value between 0 and 1. Typically, the value will be higher than 0.5. A value lower than 0.5 would mean there is something seriously wrong with the model.
+
+## Saving ROC Information
+
+If we want to save the information from the roc() function, we can do so by simply assignming a variable to the output of roc()
+
+```{r}
+par(pty = "s")
+roc.info <- roc(obese, glm.fit$fitted.values, plot=T, legacy.axes = T, percent = T,
+    xlab = "False Positive Percentage", ylab = "True Positive Percentage",
+    col = '#377EB8', lwd=4, print.auc=T)
+
+print(roc.info)
+
+roc.df <- tibble(
+  tpp = roc.info$sensitivities,         # true positive percentages
+  fpp = (100 - roc.info$specificities), # false positive percentages
+  thresholds = roc.info$thresholds
+)
+
+head(roc.df)
+tail(roc.df)
+```
+
+## Comparing ROC of multiple models
+
+We can also make comparisons between models, by overlapping ROC curves of the models we are comparing.
+
+First, we will need a model to compare. Let us try to make random forest classifier to compare against or logistic regression classifier
+
+```{r}
+# creating the rf model
+rf.model <- randomForest(factor(obese) ~ weight)
+
+# plotting the rf.model
+par(pty='s')
+roc(obese, glm.fit$fitted.values, plot=T, legacy.axes = T, percent = T,
+    xlab = "False Positive Percentage", ylab = "True Positive Percentage",
+    col = '#377EB8', lwd=4, print.auc=T)
+plot.roc(obese, rf.model$votes[,1], percent=T, col='#4DAF4A', lwd=4,
+         print.auc=T, add=TRUE, print.auc.y=40)
+legend("bottomright", legend=c("Logistic Regression", "Random Forest"),
+       col=c('#377EB8', '#4DAF4A'), lwd=4)
+```
+
+# Supplemental Observations and Notes
+
+This section contains supplemental knowledge outside the original scope of the lesson video linked in the introduction. In order to better grassp the concept and further my understanding, I reviewed other content and provided my observations in the sections below. In some cases, I have given a link to the information I am refering to. In other cases, there is not specific content that can be linked, however I have documented my impressions that may come from multiple soruces, or at the very least, from the main lesson itself.
+
+## Why is ROC and AUC important?
+
+ROC curves relieves the need to make 100's of confusion matricies, in order to make an informed dicision about what threshold to use for the final model.
+
+As an example - image that instead of predicting obesity, we were predicting whether or not the patients has cancer. The consequences of a False Negative, means a patient that is either never treated for cancer or is delayed in treatment, in either case - risking the health of the patient. Conversely a false positive introduces stress and financial burden. Given the consequences of each outcome, we probably lean towards a more sensitive model than a more specific model, since the consequences of incorrectly diagnosing a patient with cancer is, in general, worse than than diagnosing a non-cancer patient as having cancer.
+
+## Criticisms to AUC
+
+Paraphrasing from [R-Bloggers](https://www.r-bloggers.com/illustrated-guide-to-roc-and-auc/).
+
+It may not be fair to compare models via AUC, due to differing cost functions that produce respecting ROC curves. THe assumption being made, is that each point of the ROC curve, is homogenous in its importance. We can see this bare out in the example above, where the random forest AUC is lower than the logistic regression. However, we notice that the random forest model does better where it matters, having a better sensitivity to specificity ratio in the upper-left hand corner of the chart. If we were to only be analysing the AUC, we would leave with th cconclusion that the random forest moodel is worse than the logistic regression. However, we would likely to use the random forest model in practice.
+
+
+
