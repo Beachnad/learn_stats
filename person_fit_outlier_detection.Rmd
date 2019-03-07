@@ -1,0 +1,32 @@
+---
+title: "Person Fit Outliar Detection"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+# Introduction
+
+Person fit outliar detection is a modern method for detecting outliars in survey data. Older methodologies use summary statistics and visual detection via box plots. These methods fail to take into account abberent response patterns which aggregates to a normal survey score. For example, if a respondant answers a survey on tehe extreme ends of the scale, they will receive and average score by the end of the surve. However, their response pattern is an outliar.
+
+# Lesson Plan
+
+The material to this lesson comes from an [article](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5445123/pdf/fpsyg-08-00863.pdf) written by John Felt, published in Frontiers in Psychology in 2017.
+
+# Example
+
+```{r}
+library(dplyr)
+source('functions.R')
+
+data <- big5_data()$data %>%
+  select(-race,-age,-engnat, -gender, -hand, -source, -country)
+
+names(data)
+library(mirt)
+cfa <- mirt.model("O = 41-50 C = 31-40 E = 1-10 A = 21-30 N = 11-20")
+mod1 <- mirt(data, cfa, itemtype = "graded")
+
+
+```
